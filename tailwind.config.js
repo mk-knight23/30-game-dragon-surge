@@ -1,13 +1,22 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+  content: ["./index.html", "./src/**/*.{vue,js,ts,jsx,tsx}"],
   darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        game: { bg: '#1a1a2e', accent: '#e94560', gold: '#f39c12' }
+        jurassic: {
+          leaf: '#166534',
+          rock: '#451a03',
+          volcano: '#991b1b',
+          glow: '#fbbf24',
+          sky: '#0f172a'
+        }
       },
-      fontFamily: { game: ['Orbitron', 'monospace'] },
+      fontFamily: {
+        game: ['"Press Start 2P"', 'system-ui'],
+        sans: ['Inter', 'sans-serif']
+      }
     },
   },
   plugins: [],

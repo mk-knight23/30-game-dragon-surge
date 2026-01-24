@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  background-color: #0f172a;
+  color: #ffffff;
+}
+
+body {
+  @apply antialiased overflow-hidden select-none bg-jurassic-sky;
+  margin: 0;
+  height: 100vh;
+}
+
+.glass-panel {
+  @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl;
+}
+
+.btn-jurassic {
+  @apply px-8 py-4 rounded-xl font-game text-[10px] uppercase transition-all active:scale-95 disabled:opacity-50 border-2;
+}
+
+.text-glow-amber {
+  text-shadow: 0 0 10px #fbbf24, 0 0 20px #fbbf24;
+}
+
+/* Parallax Layers */
+.parallax-layer {
+  @apply absolute inset-0 pointer-events-none;
+  background-repeat: repeat-x;
+  background-position: bottom;
+}
