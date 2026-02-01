@@ -8,12 +8,8 @@ import {
   Trophy, 
   Zap,
   Activity,
-  Github,
   ChevronUp,
-  Moon,
-  Sun,
   Settings,
-  HelpCircle,
 } from 'lucide-vue-next'
 import SettingsPanel from '@/components/ui/SettingsPanel.vue'
 
@@ -47,15 +43,10 @@ const showHelp = ref(false)
 const backgroundClass = computed(() => {
   if (gameStore.isGameOver) return 'bg-red-950/20'
   if (gameStore.isPaused) return 'bg-amber-950/20'
-  return 'bg-jurassic-sky'
+  return 'bg-obsidian'
 })
 
-const themeIcon = computed(() => {
-  const theme = settingsStore.settings.theme
-  if (theme === 'dark') return Moon
-  if (theme === 'light') return Sun
-  return Sun
-})
+// Theme icons removed for arcade feel
 
 onMounted(() => {
   isMobile.value = window.innerWidth < 768
@@ -250,67 +241,77 @@ function draw(): void {
 
   const groundY = 350
 
-  ctx.fillStyle = '#1e293b'
+  // Draw Magma Ground
+  ctx.fillStyle = '#0F0F1A'
   ctx.fillRect(0, groundY, canvas.width, 50)
-
+  
+  // Ground neon line
+  ctx.strokeStyle = '#FF4D00'
+  ctx.lineWidth = 4
+  ctx.beginPath()
+  ctx.moveTo(0, groundY)
+  ctx.lineTo(canvas.width, groundY)
+  ctx.stroke()
+  
+  // Parallax Particles (Ash/Neon)
   if (settingsStore.settings.showParticles) {
     parallaxOffsets.value.forEach((offset, i) => {
-      ctx!.fillStyle = `rgba(255, 255, 255, ${0.05 - (i * 0.01)})`
-      for (let x = offset; x < canvas.width; x += 100 * (i + 1)) {
-        ctx!.fillRect(x, groundY - 20 - (i * 30), 2, 50 * (i + 1))
+      ctx!.fillStyle = i % 2 === 0 ? `rgba(255, 77, 0, ${0.1 - (i * 0.02)})` : `rgba(0, 243, 255, ${0.1 - (i * 0.02)})`
+      for (let x = offset; x < canvas.width; x += 150 * (i + 1)) {
+        ctx!.beginPath()
+        ctx!.arc(x, groundY - 50 - (i * 40), 1 + i, 0, Math.PI * 2)
+        ctx!.fill()
       }
     })
   }
-
-  ctx.shadowBlur = 20
-  ctx.shadowColor = '#39ff14'
 
   // Draw player trail
   playerTrail.value.forEach((trail, index) => {
     const scale = 1 - (index * 0.15)
     const offsetX = (player.value.width * (1 - scale)) / 2
     ctx!.globalAlpha = trail.alpha * 0.5
-    ctx!.fillStyle = '#39ff14'
-    ctx!.shadowBlur = 10
+    ctx!.fillStyle = '#00F3FF'
+    ctx!.shadowColor = '#00F3FF'
+    ctx!.shadowBlur = 15
     ctx!.fillRect(
       100 + offsetX,
       groundY - trail.y - player.value.height * scale,
       player.value.width * scale,
       player.value.height * scale
     )
-    // Fade trail
     trail.alpha -= 0.05
   })
   playerTrail.value = playerTrail.value.filter(t => t.alpha > 0)
 
   // Draw player
   ctx.globalAlpha = 1
-  ctx.fillStyle = '#39ff14'
+  ctx.fillStyle = '#00F3FF'
+  ctx.shadowColor = '#00F3FF'
+  ctx.shadowBlur = 20
   ctx.fillRect(100, groundY - player.value.y - player.value.height, player.value.width, player.value.height)
   ctx.shadowBlur = 0
-  ctx.globalAlpha = 1
 
-  ctx.shadowColor = '#ef4444'
-  ctx.fillStyle = '#ef4444'
+  // Draw obstacles (Volcano Magma)
   obstacles.value.forEach(obs => {
     if (obs.warning) {
-      // Draw warning indicator at right edge
-      const alpha = 0.3 + Math.sin(Date.now() / 100) * 0.2
+      const alpha = 0.4 + Math.sin(Date.now() / 100) * 0.3
       ctx!.globalAlpha = alpha
-      ctx!.fillStyle = '#fbbf24'
-      ctx!.shadowColor = '#fbbf24'
-      ctx!.shadowBlur = 15
-      // Warning triangle at right edge
+      ctx!.fillStyle = '#FF4D00'
+      ctx!.shadowColor = '#FF4D00'
+      ctx!.shadowBlur = 20
       ctx!.beginPath()
-      ctx!.moveTo(canvas.width - 30, groundY - obs.height - 10)
+      ctx!.moveTo(canvas.width - 40, groundY - obs.height - 20)
       ctx!.lineTo(canvas.width - 10, groundY - obs.height / 2)
-      ctx!.lineTo(canvas.width - 30, groundY)
+      ctx!.lineTo(canvas.width - 40, groundY + 10)
       ctx!.closePath()
       ctx!.fill()
       ctx!.globalAlpha = 1
     } else {
-      ctx!.fillStyle = '#ef4444'
-      ctx!.shadowColor = '#ef4444'
+      const gradient = ctx!.createLinearGradient(obs.x, groundY - obs.height, obs.x, groundY)
+      gradient.addColorStop(0, '#FF4D00')
+      gradient.addColorStop(1, '#991b1b')
+      ctx!.fillStyle = gradient
+      ctx!.shadowColor = '#FF4D00'
       ctx!.shadowBlur = 15
       ctx!.fillRect(obs.x, groundY - obs.height, obs.width, obs.height)
     }
@@ -319,50 +320,32 @@ function draw(): void {
 
   // Draw score popups
   scorePopups.value.forEach(popup => {
-    const alpha = popup.life
-    ctx!.globalAlpha = alpha
-    ctx!.fillStyle = '#39ff14'
-    ctx!.shadowColor = '#39ff14'
+    ctx!.globalAlpha = popup.life
+    ctx!.fillStyle = '#00F3FF'
+    ctx!.shadowColor = '#00F3FF'
     ctx!.shadowBlur = 10
-    ctx!.font = 'bold 16px monospace'
+    ctx!.font = '900 24px "Space Mono"'
     ctx!.textAlign = 'center'
     ctx!.fillText(`+${popup.value}`, popup.x, popup.y)
     ctx!.globalAlpha = 1
-    ctx!.shadowBlur = 0
   })
   
-  // V2: Draw coins
+  // Draw coins (Neon Sulphur)
   coins.value.forEach(coin => {
     if (coin.collected) return
-    const scale = 0.8 + Math.sin(coinRotation.value) * 0.2 // Simulate rotation
-    const coinY = 350 - coin.y
-    
-    ctx!.globalAlpha = 1
-    ctx!.fillStyle = '#fbbf24'
-    ctx!.shadowColor = '#fbbf24'
+    const scale = 0.8 + Math.sin(coinRotation.value) * 0.2
+    const coinY = groundY - coin.y
+    ctx!.fillStyle = '#E6FB04'
+    ctx!.shadowColor = '#E6FB04'
     ctx!.shadowBlur = 15
-    
-    // Draw coin as ellipse (rotating effect)
     ctx!.beginPath()
     ctx!.ellipse(coin.x, coinY, 12 * scale, 15, 0, 0, Math.PI * 2)
     ctx!.fill()
-    
-    // Inner detail
-    ctx!.fillStyle = '#f59e0b'
-    ctx!.beginPath()
-    ctx!.ellipse(coin.x, coinY, 8 * scale, 10, 0, 0, Math.PI * 2)
-    ctx!.fill()
-    
     ctx!.shadowBlur = 0
   })
 }
 
-function toggleTheme(): void {
-  const themes: Array<'dark' | 'light' | 'system'> = ['dark', 'light', 'system']
-  const currentIndex = themes.indexOf(settingsStore.settings.theme)
-  const nextIndex = (currentIndex + 1) % themes.length
-  settingsStore.setTheme(themes[nextIndex])
-}
+// Theme toggle removed for arcade consistency
 
 ;(globalThis as any).handleJump = jump
 </script>
@@ -374,160 +357,123 @@ function toggleTheme(): void {
     role="application"
     aria-label="Dragon Surge Game"
   >
-    <div class="absolute inset-0 z-0">
-      <div v-for="(offset, i) in parallaxOffsets" :key="i"
-           class="parallax-layer opacity-20"
-           :style="{ 
-             backgroundPositionX: offset + 'px', 
-             backgroundImage: 'linear-gradient(90deg, transparent 95%, rgba(255,255,255,0.1) 95%)',
-             backgroundSize: (100 * (i + 1)) + 'px 100%' 
-           }">
-      </div>
+    <!-- CRT Scanline Overlay -->
+    <div class="pointer-events-none fixed inset-0 z-50 overflow-hidden opacity-10">
+      <div class="h-full w-full animate-scanline bg-[linear-gradient(to_bottom,transparent_50%,black_50%)] bg-[length:100%_4px]"></div>
     </div>
 
-    <nav class="h-20 lg:h-24 border-b border-white/5 px-7 lg:px-11 flex items-center justify-between relative z-10 bg-black/20 backdrop-blur-md">
+    <nav class="h-20 lg:h-24 border-b border-magma/20 px-7 lg:px-11 flex items-center justify-between relative z-10 bg-obsidian/80 backdrop-blur-xl">
       <div class="flex items-center space-x-3 text-white">
-        <div class="bg-jurassic-glow p-2 rounded-xl rotate-3 shadow-lg shadow-jurassic-glow/20">
-          <Zap class="text-black" :size="20" lg:size="24" fill="currentColor" />
+        <div class="bg-magma p-2 rounded-none rotate-3 shadow-[0_0_20px_#FF4D00]">
+          <Zap class="text-white" :size="20" lg:size="24" fill="currentColor" />
         </div>
-        <h1 class="text-xl lg:text-2xl font-display font-black tracking-tighter uppercase italic">
-          Dragon<span class="text-jurassic-glow">Surge</span>
+        <h1 class="arcade-title text-3xl lg:text-4xl">
+          DRAGON_<span class="text-magma">SURGE</span>
         </h1>
       </div>
 
       <div class="flex items-center space-x-4 lg:space-x-6 text-white">
         <div class="hidden lg:flex items-center space-x-4">
           <div v-for="i in 3" :key="i"
-               class="w-2 h-2 rounded-full transition-colors"
-               :class="i <= gameStore.lives ? 'bg-jurassic-glow' : 'bg-white/20'">
+               class="w-3 h-3 rounded-none transition-all duration-300"
+               :class="i <= gameStore.lives ? 'bg-magma shadow-[0_0_10px_#FF4D00]' : 'bg-white/10'">
           </div>
         </div>
         
         <div class="glass-panel px-4 lg:px-6 py-2 lg:py-2.5 flex items-center space-x-3 lg:space-x-4">
-          <Trophy :size="14" lg:size="16" class="text-amber-500" />
-          <span class="text-[10px] lg:text-xs font-black tracking-widest uppercase">Apex: {{ gameStore.highScore }}m</span>
+          <Trophy :size="14" lg:size="16" class="text-neon-sulphur" />
+          <span class="text-[10px] lg:text-xs font-arcade tracking-widest uppercase">BEST: {{ gameStore.highScore }}</span>
         </div>
 
         <div class="flex gap-1 lg:gap-2">
           <button 
-            @click="toggleTheme"
-            class="p-2 lg:p-3 rounded-xl hover:bg-white/5 transition-colors"
-            :aria-label="`Toggle theme. Current: ${settingsStore.settings.theme}`"
-          >
-            <component :is="themeIcon" :size="16" lg:size="20" class="text-white" />
-          </button>
-          
-          <button 
             @click="showSettings = true"
-            class="p-2 lg:p-3 rounded-xl hover:bg-white/5 transition-colors"
+            class="p-2 lg:p-3 rounded-none hover:bg-magma/20 transition-colors border border-transparent hover:border-magma"
             aria-label="Open settings"
           >
             <Settings :size="16" lg:size="20" class="text-white" />
           </button>
-          
-          <button 
-            @click="showHelp = true"
-            class="p-2 lg:p-3 rounded-xl hover:bg-white/5 transition-colors"
-            aria-label="Open help"
-          >
-            <HelpCircle :size="16" lg:size="20" class="text-white" />
-          </button>
         </div>
-
-        <a href="https://github.com/mk-knight23/33-Dragon-Game-JS" target="_blank" 
-           class="p-2 lg:p-3 rounded-xl hover:bg-white/5 transition-all text-slate-400 hover:text-white hidden lg:block">
-          <Github :size="20" />
-        </a>
       </div>
     </nav>
 
     <main class="flex-1 flex flex-col items-center justify-center p-4 lg:p-8 relative z-10">
-      <div class="relative glass-panel p-3 lg:p-4 border-2 border-white/10 shadow-[0_0_100px_rgba(251,191,36,0.05)]">
+      <div class="relative glass-panel p-3 lg:p-4 border-2 border-magma/30 shadow-[0_0_100px_rgba(255,77,0,0.1)]">
         <canvas
           ref="canvasRef"
           width="800"
           height="400"
-          class="bg-black/40 rounded-xl w-full max-w-[802px] h-auto"
+          class="bg-obsidian/60 border border-white/5 w-full max-w-[802px] h-auto shadow-inner"
           role="img"
           aria-label="Dragon game canvas"
         ></canvas>
         
         <div v-if="gameStore.isIdle" 
-             class="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm rounded-2xl space-y-6 lg:space-y-8">
-          <div class="text-center space-y-2">
-            <h2 class="text-3xl lg:text-4xl font-display font-black uppercase text-white tracking-tighter leading-none italic">
-              Initiate <br/> Sequence
+             class="absolute inset-0 flex flex-col items-center justify-center bg-obsidian/80 backdrop-blur-xl space-y-8">
+          <div class="text-center space-y-4 animate-pulse-magma">
+            <h2 class="arcade-title">
+              READY_TO<br/>SURGE?
             </h2>
-            <p class="text-[10px] lg:text-xs font-black uppercase text-slate-500 tracking-[0.2em] lg:tracking-[0.3em]">
-              Neural Link Stable
+            <p class="text-[10px] lg:text-xs font-mono font-black uppercase text-magma tracking-[0.4em]">
+              NEURAL_LINK: ESTABLISHED
             </p>
           </div>
           <button 
             @click="startGame"
-            class="btn-primary pointer-events-auto"
+            class="btn-arcade text-dragon-cyan border-dragon-cyan hover:bg-dragon-cyan/10"
             autofocus
           >
-            Execute Run
+            [ INITIATE_RUN ]
           </button>
         </div>
 
         <div v-if="gameStore.isPaused" 
-             class="absolute inset-0 flex flex-col items-center justify-center bg-amber-950/60 backdrop-blur-md rounded-2xl space-y-6">
-          <div class="text-center space-y-2">
-            <h2 class="text-3xl lg:text-4xl font-display font-black text-amber-500 tracking-tighter italic uppercase leading-none">
-              Paused
-            </h2>
-          </div>
+             class="absolute inset-0 flex flex-col items-center justify-center bg-obsidian/90 backdrop-blur-xl space-y-6">
+          <h2 class="arcade-title text-magma animate-glitch">SYSTEM_PAUSED</h2>
           <button 
             @click="gameStore.pauseGame()"
-            class="px-8 py-3 lg:py-4 bg-white text-black rounded-xl font-bold uppercase tracking-widest text-xs lg:text-sm hover:bg-jurassic-glow transition-all"
+            class="btn-arcade text-bone border-bone hover:bg-white/10"
           >
-            Resume
+            RESUME_THREAD
           </button>
         </div>
 
         <div v-if="gameStore.isGameOver" 
-             class="absolute inset-0 flex flex-col items-center justify-center bg-red-950/60 backdrop-blur-md rounded-2xl space-y-4 lg:space-y-6">
-          <div class="text-center space-y-2">
-            <h2 class="text-3xl lg:text-5xl font-display font-black text-red-500 tracking-tighter italic uppercase leading-none">
-              Fractured
-            </h2>
-            <p class="text-xs lg:text-sm font-black uppercase text-white tracking-widest">
-              Final Data Chunk: {{ gameStore.score }}m
+             class="absolute inset-0 flex flex-col items-center justify-center bg-obsidian/95 backdrop-blur-2xl space-y-8">
+          <div class="text-center space-y-4">
+            <h2 class="arcade-title text-magma animate-glitch">DATA_FRACTURED</h2>
+            <p class="text-xs lg:text-sm font-mono font-black uppercase text-bone tracking-widest">
+              TELEMETRY_TERMINATED: {{ gameStore.score }}m
             </p>
           </div>
           
-          <div class="grid grid-cols-2 gap-3 lg:gap-4">
-            <div class="glass-panel p-3 lg:p-4">
-              <p class="text-[8px] uppercase tracking-widest text-slate-500">Best</p>
-              <p class="text-lg lg:text-xl font-game text-white">{{ gameStore.highScore }}m</p>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="glass-panel p-4 border border-dragon-cyan/30">
+              <p class="text-[8px] uppercase tracking-widest text-dragon-cyan">PEAK</p>
+              <p class="text-2xl font-game text-bone">{{ gameStore.highScore }}</p>
             </div>
-            <div class="glass-panel p-3 lg:p-4">
-              <p class="text-[8px] uppercase tracking-widest text-slate-500">Level</p>
-              <p class="text-lg lg:text-xl font-game text-jurassic-glow">{{ gameStore.level }}</p>
+            <div class="glass-panel p-4 border border-magma/30">
+              <p class="text-[8px] uppercase tracking-widest text-magma">LVL</p>
+              <p class="text-2xl font-game text-bone">{{ gameStore.level }}</p>
             </div>
           </div>
 
-          <div class="flex flex-col gap-2 w-full max-w-xs">
-            <button 
-              @click="startGame"
-              class="w-full bg-white text-black py-3 lg:py-4 rounded-xl font-bold uppercase tracking-widest text-xs lg:text-sm hover:bg-jurassic-glow transition-all"
-            >
-              Reset Matrix
-            </button>
-          </div>
+          <button 
+            @click="startGame"
+            class="btn-arcade text-dragon-cyan border-dragon-cyan hover:bg-dragon-cyan/10 shadow-[0_0_20px_rgba(0,243,255,0.3)]"
+          >
+            REBOOT_CORE
+          </button>
         </div>
 
         <div v-if="gameStore.isPlaying && settingsStore.settings.showHUD" 
-             class="absolute top-4 lg:top-8 left-4 lg:left-8 p-3 lg:p-4 bg-black/50 backdrop-blur-md rounded-xl border border-white/5 flex flex-col gap-2">
+             class="absolute top-4 lg:top-8 left-4 lg:left-8 p-4 bg-obsidian/80 backdrop-blur-xl border border-magma/30 flex flex-col gap-1">
           <div class="flex items-center gap-2">
-            <Activity :size="14" class="text-jurassic-glow" />
-            <span class="text-[8px] lg:text-[10px] font-black uppercase text-slate-500 tracking-widest">
-              Signal Depth
-            </span>
+            <span class="w-2 h-2 bg-magma animate-pulse"></span>
+            <span class="text-[8px] font-mono font-black uppercase text-bone/50 tracking-widest">DEPTH_SYNC</span>
           </div>
-          <span class="text-xl lg:text-2xl font-mono font-black text-jurassic-glow tracking-tighter">
-            {{ gameStore.formattedScore }}
+          <span class="text-3xl font-mono font-black text-bone text-glow-magma">
+            {{ String(gameStore.score).padStart(6, '0') }}
           </span>
         </div>
       </div>

@@ -1,81 +1,117 @@
 @import "tailwindcss";
 
 @theme {
-  --color-jurassic-leaf: #166534;
-  --color-jurassic-rock: #451a03;
-  --color-jurassic-volcano: #991b1b;
-  --color-jurassic-glow: #fbbf24;
-  --color-jurassic-sky: #0f172a;
-  --color-jurassic-dark: #0a0a0f;
-  --color-jurassic-light: #f8fafc;
+  --color-obsidian: #0F0F1A;
+  --color-magma: #FF4D00;
+  --color-neon-sulphur: #E6FB04;
+  --color-dragon-cyan: #00F3FF;
+  --color-bone: #F8FAFC;
 
+  --font-arcade: "Bangers", system-ui;
   --font-game: "Press Start 2P", system-ui;
-  --font-display: system-ui, sans-serif;
+  --font-mono: "Space Mono", monospace;
   --font-sans: "Inter", sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
 
-  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-glitch: glitch 0.3s cubic-bezier(.25, .46, .45, .94) both infinite;
+  --animate-scanline: scanline 8s linear infinite;
+  --animate-pulse-magma: pulse-magma 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 :root {
-  --color-bg-primary: #0a0a0f;
-  --color-bg-secondary: #0f172a;
-  --color-text-primary: #f8fafc;
-  --color-text-secondary: #94a3b8;
-  --color-accent: #166534;
-}
-
-.light {
-  --color-bg-primary: #f8fafc;
-  --color-bg-secondary: #e2e8f0;
-  --color-text-primary: #1a1a1a;
-  --color-text-secondary: #64748b;
-  --color-accent: #166534;
-}
-
-html {
-  @apply scroll-smooth;
+  --color-bg-primary: #0F0F1A;
+  --color-bg-secondary: #161625;
+  --color-text-primary: #F8FAFC;
+  --color-text-secondary: #94A3B8;
+  --color-accent: #FF4D00;
 }
 
 body {
-  @apply bg-jurassic-dark text-jurassic-light antialiased;
-  font-family: 'Inter', system-ui, sans-serif;
+  @apply bg-obsidian text-bone antialiased overflow-hidden;
+  font-family: 'Space Mono', monospace;
 }
 
 @utility glass-panel {
-  background-color: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 1rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  background-color: rgba(15, 15, 26, 0.8);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 77, 0, 0.2);
+  border-radius: 0px;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
 }
 
-@utility btn-jurassic {
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  transition-property: all;
-  transition-duration: 200ms;
+@utility arcade-title {
+  @apply font-arcade text-5xl lg:text-7xl tracking-widest uppercase;
+  text-shadow: 4px 4px 0px #FF4D00, 8px 8px 0px rgba(0, 0, 0, 0.5);
+}
+
+@utility btn-arcade {
+  @apply font-arcade py-4 px-8 text-2xl uppercase tracking-tighter transition-all duration-200 relative overflow-hidden;
+  border: 3px solid currentColor;
+  clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);
 
   &:hover {
-    transform: scale(1.05);
+    @apply scale-105;
+    text-shadow: 0 0 10px currentColor;
   }
 }
 
-@utility btn-jurassic-primary {
-  @apply bg-jurassic-leaf text-white shadow-lg;
+@keyframes glitch {
+  0% {
+    transform: translate(0)
+  }
 
-  &:hover {
-    background-color: #14532d;
+  20% {
+    transform: translate(-2px, 2px)
+  }
+
+  40% {
+    transform: translate(-2px, -2px)
+  }
+
+  60% {
+    transform: translate(2px, 2px)
+  }
+
+  80% {
+    transform: translate(2px, -2px)
+  }
+
+  100% {
+    transform: translate(0)
   }
 }
 
-@utility btn-jurassic-secondary {
-  @apply bg-jurassic-rock text-white shadow-lg;
-
-  &:hover {
-    background-color: #3b1402;
+@keyframes scanline {
+  0% {
+    transform: translateY(-100%)
   }
+
+  100% {
+    transform: translateY(100%)
+  }
+}
+
+@keyframes pulse-magma {
+
+  0%,
+  100% {
+    opacity: 1;
+    text-shadow: 0 0 20px #FF4D00;
+  }
+
+  50% {
+    opacity: 0.7;
+    text-shadow: 0 0 5px #FF4D00;
+  }
+}
+
+.text-glow-cyan {
+  text-shadow: 0 0 10px #00F3FF;
+}
+
+.text-glow-magma {
+  text-shadow: 0 0 10px #FF4D00;
+}
+
+canvas {
+  image-rendering: pixelated;
 }

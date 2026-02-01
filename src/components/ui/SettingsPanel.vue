@@ -86,14 +86,14 @@ function resetStats(): void {
                   </div>
                   <button 
                     @click="settingsStore.toggleSound()"
-                    class="toggle-squid"
-                    :class="settingsStore.settings.soundEnabled ? 'toggle-squid-checked' : 'bg-slate-600'"
+                    class="toggle-neon"
+                    :class="settingsStore.settings.soundEnabled ? 'toggle-neon-checked' : 'bg-white/5'"
                     role="switch"
                     :aria-checked="settingsStore.settings.soundEnabled"
                   >
                     <span 
-                      class="toggle-squid-thumb"
-                      :class="settingsStore.settings.soundEnabled ? 'toggle-squid-thumb-checked' : ''"
+                      class="toggle-neon-thumb"
+                      :class="settingsStore.settings.soundEnabled ? 'toggle-neon-thumb-checked' : ''"
                     ></span>
                   </button>
                 </div>
@@ -105,14 +105,14 @@ function resetStats(): void {
                   </div>
                   <button 
                     @click="settingsStore.toggleMusic()"
-                    class="toggle-squid"
-                    :class="settingsStore.settings.musicEnabled ? 'toggle-squid-checked' : 'bg-slate-600'"
+                    class="toggle-neon"
+                    :class="settingsStore.settings.musicEnabled ? 'toggle-neon-checked' : 'bg-white/5'"
                     role="switch"
                     :aria-checked="settingsStore.settings.musicEnabled"
                   >
                     <span 
-                      class="toggle-squid-thumb"
-                      :class="settingsStore.settings.musicEnabled ? 'toggle-squid-thumb-checked' : ''"
+                      class="toggle-neon-thumb"
+                      :class="settingsStore.settings.musicEnabled ? 'toggle-neon-thumb-checked' : ''"
                     ></span>
                   </button>
                 </div>
@@ -126,16 +126,16 @@ function resetStats(): void {
               
               <div class="space-y-4">
                 <div>
-                  <label class="block text-sm text-white mb-2">Difficulty</label>
+                  <label class="block text-sm font-arcade text-dragon-cyan mb-2 tracking-widest uppercase">DIFFICULTY_PROTOCOL</label>
                   <div class="flex gap-2">
                     <button 
                       v-for="diff in ['easy', 'normal', 'hard']" 
                       :key="diff"
                       @click="settingsStore.setDifficulty(diff as 'easy' | 'normal' | 'hard')"
-                      class="flex-1 py-2 px-4 rounded-lg text-sm font-medium uppercase tracking-wide transition-all"
+                      class="flex-1 py-3 px-4 rounded-none text-[10px] font-mono font-bold uppercase tracking-widest transition-all border"
                       :class="settingsStore.settings.difficulty === diff 
-                        ? 'bg-jurassic-glow text-black' 
-                        : 'bg-white/5 text-slate-400 hover:bg-white/10'"
+                        ? 'bg-magma text-white border-magma shadow-[0_0_15px_#FF4D00]' 
+                        : 'bg-obsidian text-bone/40 border-white/10 hover:border-magma/50 hover:text-bone'"
                     >
                       {{ diff }}
                     </button>
@@ -149,14 +149,14 @@ function resetStats(): void {
                   </div>
                   <button 
                     @click="settingsStore.toggleParticles()"
-                    class="toggle-squid"
-                    :class="settingsStore.settings.showParticles ? 'toggle-squid-checked' : 'bg-slate-600'"
+                    class="toggle-neon"
+                    :class="settingsStore.settings.showParticles ? 'toggle-neon-checked' : 'bg-white/5'"
                     role="switch"
                     :aria-checked="settingsStore.settings.showParticles"
                   >
                     <span 
-                      class="toggle-squid-thumb"
-                      :class="settingsStore.settings.showParticles ? 'toggle-squid-thumb-checked' : ''"
+                      class="toggle-neon-thumb"
+                      :class="settingsStore.settings.showParticles ? 'toggle-neon-thumb-checked' : ''"
                     ></span>
                   </button>
                 </div>
@@ -168,14 +168,14 @@ function resetStats(): void {
                   </div>
                   <button 
                     @click="settingsStore.toggleHUD()"
-                    class="toggle-squid"
-                    :class="settingsStore.settings.showHUD ? 'toggle-squid-checked' : 'bg-slate-600'"
+                    class="toggle-neon"
+                    :class="settingsStore.settings.showHUD ? 'toggle-neon-checked' : 'bg-white/5'"
                     role="switch"
                     :aria-checked="settingsStore.settings.showHUD"
                   >
                     <span 
-                      class="toggle-squid-thumb"
-                      :class="settingsStore.settings.showHUD ? 'toggle-squid-thumb-checked' : ''"
+                      class="toggle-neon-thumb"
+                      :class="settingsStore.settings.showHUD ? 'toggle-neon-thumb-checked' : ''"
                     ></span>
                   </button>
                 </div>
@@ -188,26 +188,26 @@ function resetStats(): void {
               </h3>
               
               <div class="grid grid-cols-2 gap-4">
-                <div class="glass-panel p-4 text-center">
-                  <BarChart3 :size="20" class="text-jurassic-glow mx-auto mb-2" />
-                  <p class="text-2xl font-game text-white">{{ statsStore.stats.totalGames }}</p>
-                  <p class="text-[10px] uppercase tracking-widest text-slate-500">Games</p>
+                <div class="glass-panel p-4 text-center border border-magma/20">
+                  <BarChart3 :size="20" class="text-magma mx-auto mb-2" />
+                  <p class="text-2xl font-game text-bone">{{ statsStore.stats.totalGames }}</p>
+                  <p class="text-[8px] uppercase tracking-widest text-bone/40 font-mono">Runs</p>
                 </div>
                 
-                <div class="glass-panel p-4 text-center">
-                  <Trophy :size="20" class="text-amber-500 mx-auto mb-2" />
-                  <p class="text-2xl font-game text-white">{{ statsStore.stats.bestScore }}m</p>
-                  <p class="text-[10px] uppercase tracking-widest text-slate-500">Best Distance</p>
+                <div class="glass-panel p-4 text-center border border-neon-sulphur/20">
+                  <Trophy :size="20" class="text-neon-sulphur mx-auto mb-2" />
+                  <p class="text-2xl font-game text-bone">{{ statsStore.stats.bestScore }}m</p>
+                  <p class="text-[8px] uppercase tracking-widest text-bone/40 font-mono">Apex Dist</p>
                 </div>
                 
-                <div class="glass-panel p-4 text-center">
-                  <p class="text-2xl font-game text-jurassic-leaf">{{ statsStore.stats.averageScore }}m</p>
-                  <p class="text-[10px] uppercase tracking-widest text-slate-500">Average</p>
+                <div class="glass-panel p-4 text-center border border-dragon-cyan/20">
+                  <p class="text-2xl font-game text-dragon-cyan">{{ statsStore.stats.averageScore }}m</p>
+                  <p class="text-[8px] uppercase tracking-widest text-bone/40 font-mono">Avg Depth</p>
                 </div>
                 
-                <div class="glass-panel p-4 text-center">
-                  <p class="text-2xl font-game text-jurassic-volcano">{{ statsStore.stats.totalObstacles }}</p>
-                  <p class="text-[10px] uppercase tracking-widest text-slate-500">Obstacles</p>
+                <div class="glass-panel p-4 text-center border border-red-500/20">
+                  <p class="text-2xl font-game text-red-500">{{ statsStore.stats.totalObstacles }}</p>
+                  <p class="text-[8px] uppercase tracking-widest text-bone/40 font-mono">Contacts</p>
                 </div>
               </div>
 
@@ -344,19 +344,20 @@ function resetStats(): void {
   transform: scale(0.95) translateY(20px);
 }
 
-.toggle-squid {
-  @apply relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300;
+.toggle-neon {
+  @apply relative inline-flex h-6 w-11 items-center rounded-none transition-colors duration-300;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.toggle-squid-checked {
-  @apply bg-jurassic-glow;
+.toggle-neon-checked {
+  @apply bg-magma/40 border-magma;
 }
 
-.toggle-squid-thumb {
-  @apply inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300;
+.toggle-neon-thumb {
+  @apply inline-block h-4 w-4 transform rounded-none bg-bone transition-transform duration-300;
 }
 
-.toggle-squid-thumb-checked {
-  @apply translate-x-6;
+.toggle-neon-thumb-checked {
+  @apply translate-x-6 bg-magma shadow-[0_0_10px_#FF4D00];
 }
 </style>

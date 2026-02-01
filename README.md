@@ -1,14 +1,21 @@
-# 🐉 Dragon Surge - Primeval Runner
+# 30-game-dragon-surge
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Vue%203-4FC08D?style=for-the-badge&logo=vue.js&logoColor=white" alt="Vue 3">
-  <img src="https://img.shields.io/badge/Canvas-FF6B6B?style=for-the-badge&logo=canvas&logoColor=white" alt="Canvas API">
-  <img src="https://img.shields.io/badge/TailwindCSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind">
-  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript">
+  <img src="https://img.shields.io/badge/Version-2.0.0-FF4D00?style=for-the-badge" alt="Version">
+  <img src="https://img.shields.io/badge/Style-Neon_Jurassic-00F3FF?style=for-the-badge" alt="Style">
+  <img src="https://img.shields.io/badge/Stack-Vue_3_Vite-4FC08D?style=for-the-badge&logo=vue.js" alt="Stack">
 </p>
 
-<p align="center">
-  A professional high-fidelity 2D runner game built with **Vue 3**, **Canvas API**, and **Tailwind CSS**. Features a multi-layered parallax engine, reactive physics, and a "Jurassic Surge" design system.
+## 🌋 The Primeval Revolution
+
+**DRAGON_SURGE** is a high-fidelity, hardware-accelerated 2D runner that merges primeval survival with a neon-synthwave aesthetic. Built on a custom parallax engine, it delivers 60FPS of pure prehistoric adrenaline.
+
+### ⚡ Evolution Protocol (v2.0)
+- **Obsidian Core**: New deep-void design system with volcanic magma highlights.
+- **Neon Surge**: Hardware-accelerated motion trails and particle effects.
+- **Jurassic HUD**: Re-engineered tactical overlay for real-time telemetry.
+- **Atmospheric Depth**: Multi-layer parallax with glowing lava flows and ash particles.
+active physics, and a "Jurassic Surge" design system.
 </p>
 
 <p align="center">

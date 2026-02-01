@@ -15,8 +15,6 @@ export default [
       },
     },
     rules: {
-      '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       'vue/multi-word-component-names': 'off',
       'vue/no-v-html': 'off',
       'no-console': 'off',

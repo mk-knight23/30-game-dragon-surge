@@ -1,8 +1,12 @@
 {
-  "name": "dragon-surge-web",
+  "name": "30-game-dragon-surge",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mk-knight23/30-game-dragon-surge.git"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
