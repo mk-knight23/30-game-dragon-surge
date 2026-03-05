@@ -1,15 +1,5 @@
-# GitHub Pages Configuration
 theme: jekyll-theme-cayman
-title: Dragon Adventure Game
+title: game dragon surge
 description: Documentation for 30-game-dragon-surge
 baseurl: /30-game-dragon-surge
 url: https://mk-knight23.github.io
-
-# Navigation
-nav:
-  - title: Home
-    url: /
-  - title: Architecture
-    url: /architecture/
-  - title: API
-    url: /api/
