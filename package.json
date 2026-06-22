@@ -11,6 +11,8 @@
     "production": "npm run build && npm start",
     "dev": "vite",
     "build": "vite build",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx --fix",
     "preview": "vite preview",
     "typecheck": "vue-tsc -b && vite build"
@@ -33,12 +35,14 @@
     "autoprefixer": "^10.4.20",
     "eslint": "^9.17.0",
     "eslint-plugin-vue": "^9.32.0",
+    "jsdom": "^29.1.1",
     "lucide-vue-next": "^0.563.0",
     "postcss": "^8.4.49",
     "prettier": "^3.4.2",
     "tailwindcss": "^4.0.0",
     "typescript": "~5.6.2",
     "vite": "^6.0.5",
+    "vitest": "^2.1.9",
     "vue-tsc": "^2.2.12"
   }
 }
