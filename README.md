@@ -1,108 +1,112 @@
-# 🚀 30-game-dragon-surge (Collective Production Edition)
+# Dragon Surge
 
-## 💎 Overview
-Fully production-grade implementation of 30-game-dragon-surge, refactored by the **69-Agent Opencode Collective**.
+A neon-arcade **endless runner** built with Vue 3 and HTML Canvas. Pilot a
+glowing dragon through an infinite volcanic gauntlet — jump and double-jump
+over magma obstacles, collect coins, grab power-ups, and chase a high score
+that grows harder the longer you survive.
 
-## 🛡️ Trust & Compliance
-- **CI/CD**: Automated GitHub Actions with Gitleaks security scans.
-- **Security**: Standardized [SECURITY.md](SECURITY.md) protocol.
-- **Design**: Opencode Premium Design Tokens integrated.
+## Gameplay
 
-## 🏁 48-Hour Roadmap
-1. Initialize infrastructure via `.github/workflows`.
-2. Set your secrets in GitHub Environment settings.
-3. Deploy to production via Vercel/Docker.
+- **Endless runner** — the world scrolls toward you; you never reach an end,
+  only a higher score.
+- **Jump & double-jump** — a second jump in mid-air clears taller hazards.
+- **Coins** — collect floating coins for score bonuses.
+- **Power-ups**
+  - **Shield** — absorbs one otherwise-fatal hit.
+  - **Coin magnet** — pulls nearby coins toward you for a few seconds.
+- **Difficulty ramp** — scroll speed and obstacle frequency rise smoothly with
+  your score on a fair, diminishing-returns curve that approaches a cap rather
+  than spiking.
+- **Juice** — particle bursts on coin pickups, near-misses, and shield blocks;
+  parallax mountains and drifting embers give the scene depth.
+- **Persistent high score** — your best run is saved in `localStorage` and shown
+  on the start and game-over screens.
 
-![Evolution](https://img.shields.io/badge/Evolution-Live-brightgreen)
-![Phase 2](https://img.shields.io/badge/Phase-2-blue)
-![Score](https://img.shields.io/badge/Score-100%2F100-gold)
+## Controls
 
-Part of the **60-Repo Evolution Project**.
+| Action | Input |
+|--------|-------|
+| Jump / double-jump | `Space`, `↑`, `W`, **tap or click anywhere on the canvas**, or the on-screen button (mobile) |
+| Pause / resume | `Esc` |
+| Toggle sound | `M` |
+| Settings | gear icon in the top bar |
 
-## 📋 Evolution Status
+The canvas scales responsively, and the whole game is playable with a single
+tap on touch devices.
 
-| Phase | Status | Repos |
-|-------|--------|-------|
-| Phase 1 | ✅ Complete | 01-20 |
-| Phase 2 | 🔄 Active | 21-40 |
-| Phase 3 | ⏳ Pending | 41-60 |
+## Tech Stack
 
-## 🛠️ Tech Stack
+- **Vue 3** (`<script setup>`, Composition API)
+- **HTML5 Canvas** for the render loop (`requestAnimationFrame`)
+- **Pinia** for game/settings state
+- **Vite 6** build tooling
+- **Tailwind CSS 4** for UI chrome
+- **Vitest** for unit tests
+- **TypeScript** throughout
 
-- **Framework:** Modern stack
-- **CI/CD:** 24/7 Continuous Evolution
-- **Deployment:** Multi-platform
+The game simulation lives in a pure, framework-free engine
+(`src/game/engine.ts` + `src/game/difficulty.ts`) so it can be unit-tested
+without a DOM. `src/App.vue` is a thin renderer that drives the engine each
+frame and paints the canvas.
 
-## 📦 What's Included
-
-- ✅ Professional README
-- ✅ Complete EVOLUTION.md
-- ✅ 5 LinkedIn posts
-- ✅ 2 video scripts  
-- ✅ Podcast script
-- ✅ Architecture docs
-- ✅ API documentation
-- ✅ GitHub Actions workflow
-- ✅ Multi-platform deployment configs
-
-## 🚀 Quick Start
+## Run, Build, Test
 
 ```bash
-git clone https://github.com/mk-knight23/30-game-dragon-surge.git
-cd 30-game-dragon-surge
-npm install
-npm run dev
+npm install      # install dependencies
+
+npm run dev      # start the dev server (http://localhost:3002)
+npm run build    # production build to dist/
+npm run preview  # preview the production build
+
+npm test         # run the Vitest unit suite once
+npm run test:watch  # watch mode
+npx vue-tsc -b   # type-check
 ```
 
-## 📊 Evolution Metrics
+### Tests
 
-| Metric | Score |
-|--------|-------|
-| Documentation | 20/20 |
-| CI/CD | 20/20 |
-| Deployment | 20/20 |
-| Code Quality | 20/20 |
-| Security | 20/20 |
-| **Total** | **100/100** |
+The suite covers the core mechanics:
 
-## 🌐 Live URLs
+- jump / double-jump state and gravity/landing reset
+- obstacle collision detection (and shield absorption)
+- coin scoring and magnet pull
+- difficulty progression (speed and spawn-rate curves, level thresholds)
 
-| Platform | URL |
-|----------|-----|
-| Vercel | https://30-game-dragon-surge.vercel.app |
-| Netlify | https://30-game-dragon-surge.netlify.app |
-| Firebase | https://30-game-dragon-surge.web.app |
-
-## 📁 Structure
+## Project Structure
 
 ```
-├── .github/workflows/     # CI/CD workflows
-├── marketing/             # Marketing content
-│   ├── linkedin/         # 5 LinkedIn posts
-│   ├── videos/           # 2 video scripts
-│   └── audio/            # Podcast script
-├── docs/                 # Documentation
-│   ├── architecture/     # System design
-│   └── api/              # API docs
-├── vercel.json           # Vercel config
-├── netlify.toml          # Netlify config
-├── firebase.json         # Firebase config
-├── README.md             # This file
-└── EVOLUTION.md          # Evolution history
+src/
+├── App.vue                 # root component + canvas render loop
+├── game/
+│   ├── engine.ts           # pure game simulation (jump, physics, collisions, power-ups)
+│   ├── engine.test.ts      # engine unit tests
+│   ├── difficulty.ts       # speed / spawn-rate / level curves
+│   └── difficulty.test.ts  # difficulty unit tests
+├── stores/
+│   ├── game.ts             # game state, score, high score, run history
+│   └── settings.ts         # sound / particles / theme prefs
+├── composables/
+│   ├── useKeyboardControls.ts
+│   └── useAudio.ts
+├── components/ui/SettingsPanel.vue
+├── views/                  # Stats / Achievements (router views)
+└── utils/constants.ts      # tunable game constants
 ```
 
-## 📄 License
+## Deploy
 
-MIT License
+The project is a static SPA — any static host works. A `vercel.json` is
+included:
 
----
+```bash
+npm run build        # outputs static assets to dist/
+```
 
-🦾 **Evolved with OpenClaw** | 2026-03-06
+Deploy `dist/` to Vercel, Netlify, GitHub Pages, or any static file host. On
+Vercel, the included config serves the SPA directly.
 
-## Security
+## License
 
-This project follows security best practices:
-- No hardcoded credentials
-- Dependency scanning enabled
-- Security headers configured
-- Regular security audits performed
+MIT — see [LICENSE](LICENSE).
+
+© 2026 Made by MK — Built by Musharraf Kazi.
