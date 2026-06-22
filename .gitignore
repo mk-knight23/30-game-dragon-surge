@@ -33,3 +33,5 @@ _backup/
 # AI/Agent folders
 .claude/
 .vercel
+node_modules
+dist

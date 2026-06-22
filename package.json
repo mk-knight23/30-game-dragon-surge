@@ -19,10 +19,8 @@
     "@vueuse/core": "^11.3.0",
     "howler": "^2.2.4",
     "pinia": "^2.3.1",
-    "react-router": "^7.13.0",
     "vue": "^3.5.13",
-    "vue-router": "^4.6.4",
-    "zustand": "^5.0.11"
+    "vue-router": "^4.6.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.0",
