@@ -19,10 +19,7 @@
 </template>
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useGameStore } from '../stores/gameStore'
+import { useGameStore } from '@/stores/game'
 const gameStore = useGameStore()
-const averageScore = computed(() => {
-  const scores = gameStore.scores
-  return scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0
-})
+const averageScore = computed(() => gameStore.averageScore)
 </script>
