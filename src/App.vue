@@ -1,17 +1,26 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useGameStore } from '@/stores/game'
 import { useSettingsStore } from '@/stores/settings'
 import { useKeyboardControls } from '@/composables/useKeyboardControls'
 import { useAudio } from '@/composables/useAudio'
-import { 
-  Trophy, 
+import {
+  Trophy,
   Zap,
   Activity,
   ChevronUp,
   Settings,
+  Shield,
+  Magnet,
 } from 'lucide-vue-next'
 import SettingsPanel from '@/components/ui/SettingsPanel.vue'
+import {
+  createInitialState,
+  jump as engineJump,
+  step as engineStep,
+  ENGINE,
+  type GameState,
+} from '@/game/engine'
 
 const gameStore = useGameStore()
 const settingsStore = useSettingsStore()
@@ -21,20 +30,30 @@ const audio = useAudio()
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 let ctx: CanvasRenderingContext2D | null = null
 
-const player = ref({ y: 0, velocity: 0, width: 60, height: 60 })
-const playerTrail = ref<Array<{ y: number; alpha: number }>>([])
-const obstacles = ref<Array<{ x: number; width: number; height: number; warning?: boolean }>>([])
-const parallaxOffsets = ref([0, 0, 0, 0])
-const scorePopups = ref<Array<{ x: number; y: number; value: number; life: number }>>([])
+const CANVAS_W = 800
+const CANVAS_H = 400
 
-// V2: Collectible coins system
-const coins = ref<Array<{ x: number; y: number; collected: boolean; value: number }>>([])
+// Authoritative game state lives in the pure engine.
+let state: GameState = createInitialState()
+
+// Render-only state.
+const playerTrail = ref<Array<{ y: number; alpha: number }>>([])
+const scorePopups = ref<Array<{ x: number; y: number; value: number; life: number }>>([])
+const particles = ref<Array<{ x: number; y: number; vx: number; vy: number; life: number; color: string }>>([])
+// Parallax layers: far -> near. speedFactor scales with engine scroll speed.
+const parallax = ref([
+  { offset: 0, speedFactor: 0.15 },
+  { offset: 0, speedFactor: 0.4 },
+  { offset: 0, speedFactor: 0.85 },
+])
 const coinRotation = ref(0)
 
+const shieldActive = computed(() => state.shieldFrames > 0)
+const magnetActive = computed(() => state.magnetFrames > 0)
+const shieldOn = ref(false)
+const magnetOn = ref(false)
+
 let animationId: number | null = null
-let isJumping = false
-let jumpCount = 0
-const maxJumps = 2 // Double jump enabled
 
 const isMobile = ref(false)
 const showSettings = ref(false)
@@ -46,21 +65,26 @@ const backgroundClass = computed(() => {
   return 'bg-obsidian'
 })
 
-// Theme icons removed for arcade feel
+function handleResize(): void {
+  isMobile.value = window.innerWidth < 768
+}
 
 onMounted(() => {
-  isMobile.value = window.innerWidth < 768
+  handleResize()
   settingsStore.initializeTheme()
   audio.initializeSounds()
-  
+
   if (canvasRef.value) {
     ctx = canvasRef.value.getContext('2d')
     draw()
   }
-  
-  window.addEventListener('resize', () => {
-    isMobile.value = window.innerWidth < 768
-  })
+
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+  stopGame()
 })
 
 watch(() => gameStore.status, (newStatus) => {
@@ -73,17 +97,7 @@ watch(() => gameStore.status, (newStatus) => {
 
 function jump(): void {
   if (gameStore.status !== 'playing') return
-
-  // Allow jumping if on ground OR haven't used all jumps yet
-  if (!isJumping || jumpCount < maxJumps - 1) {
-    if (!isJumping) {
-      jumpCount = 1
-    } else {
-      jumpCount++
-    }
-    isJumping = true
-    // Higher velocity for double jump
-    player.value.velocity = jumpCount === 1 ? 15 : 12
+  if (engineJump(state.player)) {
     audio.playJump()
   }
 }
@@ -91,13 +105,11 @@ function jump(): void {
 function startGame(): void {
   audio.playStart()
   gameStore.startGame()
-  obstacles.value = []
-  coins.value = []
-  player.value.y = 0
-  player.value.velocity = 0
-  isJumping = false
-  jumpCount = 0
-  gameLoop()
+  state = createInitialState()
+  playerTrail.value = []
+  scorePopups.value = []
+  particles.value = []
+  if (animationId === null) gameLoop()
 }
 
 function stopGame(): void {
@@ -107,127 +119,93 @@ function stopGame(): void {
   }
 }
 
+function spawnBurst(x: number, y: number, color: string, count = 10): void {
+  if (!settingsStore.settings.showParticles) return
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2
+    const speed = 1 + Math.random() * 3
+    particles.value.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 1,
+      color,
+    })
+  }
+}
+
 function gameLoop(): void {
-  if (gameStore.status !== 'playing') return
-
-  player.value.y += player.value.velocity
-  player.value.velocity -= 0.8
-
-  if (player.value.y <= 0) {
-    player.value.y = 0
-    player.value.velocity = 0
-    isJumping = false
-    jumpCount = 0
+  if (gameStore.status !== 'playing') {
+    animationId = null
+    return
   }
 
-  // Add player position to trail
-  if (player.value.y > 5 || isJumping) {
-    playerTrail.value.unshift({ y: player.value.y, alpha: 0.6 })
-    // Limit trail length
-    if (playerTrail.value.length > 5) {
-      playerTrail.value.pop()
-    }
-  }
+  const events = engineStep(state)
 
-  parallaxOffsets.value = parallaxOffsets.value.map((o, i) => 
-    (o - gameStore.speed * (i + 1) * 0.2) % 800
-  )
+  // Sync store (score is engine-authoritative).
+  gameStore.setScore(state.score)
+  shieldOn.value = shieldActive.value
+  magnetOn.value = magnetActive.value
 
-  if (Math.random() < 0.02 + (gameStore.level * 0.002)) {
-    const height = 30 + Math.random() * 40
-    const width = 30 + Math.random() * 30
-    // Add obstacle with warning flag
-    obstacles.value.push({
-      x: 850, // Start off-screen with warning
-      width: width,
-      height: height,
-      warning: true // Show warning first
-    })
-    
-    // V2: Chance to spawn a coin above the obstacle
-    if (Math.random() < 0.4) {
-      coins.value.push({
-        x: 850 + width / 2,
-        y: height + 40 + Math.random() * 60, // Above the obstacle
-        collected: false,
-        value: 50
-      })
-    }
-  }
-
-  obstacles.value.forEach((obs) => {
-    obs.x -= gameStore.speed
-
-    // Remove warning when obstacle reaches screen edge
-    if (obs.warning && obs.x < 780) {
-      obs.warning = false
-    }
-
-    // Only check collision for non-warning obstacles
-    if (!obs.warning && obs.x < 100 + player.value.width && obs.x + obs.width > 100 &&
-        player.value.y < obs.height) {
-      audio.playCrash()
-      gameStore.loseLife()
-      obstacles.value = obstacles.value.filter(o => o !== obs)
-
-      if (gameStore.lives <= 0) {
-        audio.playGameOver()
-        stopGame()
-        return
-      }
-    }
+  // Parallax offsets scale with current scroll speed.
+  parallax.value.forEach((layer) => {
+    layer.offset = (layer.offset - state.speed * layer.speedFactor) % CANVAS_W
   })
 
-  obstacles.value = obstacles.value.filter(o => o.x > -100)
-  
-  // V2: Update and check coin collisions
-  coinRotation.value += 0.1
-  coins.value.forEach((coin) => {
-    if (coin.collected) return
-    coin.x -= gameStore.speed
-    
-    // Check collision with player
-    const playerBottom = 350 - player.value.y
-    const playerTop = playerBottom - player.value.height
-    const playerRight = 100 + player.value.width
-    const playerLeft = 100
-    
-    const coinBottom = 350 - coin.y
-    const coinTop = coinBottom - 20
-    const coinRight = coin.x + 15
-    const coinLeft = coin.x - 15
-    
-    if (playerRight > coinLeft && playerLeft < coinRight &&
-        playerBottom > coinTop && playerTop < coinBottom) {
-      coin.collected = true
-      gameStore.incrementScore(coin.value)
-      scorePopups.value.push({
-        x: coin.x,
-        y: 350 - coin.y - 30,
-        value: coin.value,
-        life: 1
-      })
+  // Player trail.
+  if (state.player.y > 5 || state.player.isJumping) {
+    playerTrail.value.unshift({ y: state.player.y, alpha: 0.6 })
+    if (playerTrail.value.length > 5) playerTrail.value.pop()
+  }
+
+  // React to engine events.
+  if (events.collisions > 0) {
+    audio.playCrash()
+    gameStore.loseLife()
+    if (gameStore.lives <= 0) {
+      audio.playGameOver()
+      stopGame()
+      return
     }
-  })
-  coins.value = coins.value.filter(c => c.x > -50 && !c.collected)
+  }
+  if (events.shieldBlocked) {
+    spawnBurst(ENGINE.PLAYER_X + state.player.width / 2, ENGINE.GROUND_Y - state.player.y - 30, '#00F3FF', 18)
+  }
+  for (const coin of events.coinsCollected) {
+    const cy = ENGINE.GROUND_Y - coin.y
+    scorePopups.value.push({ x: coin.x, y: cy - 20, value: coin.value, life: 1 })
+    spawnBurst(coin.x, cy, '#E6FB04', 12)
+  }
+  for (const pu of events.powerUpsCollected) {
+    spawnBurst(pu.x, ENGINE.GROUND_Y - pu.y, pu.type === 'shield' ? '#00F3FF' : '#FF4DD8', 16)
+  }
+  if (events.nearMisses > 0) {
+    spawnBurst(ENGINE.PLAYER_X + state.player.width, ENGINE.GROUND_Y - state.player.y - 20, '#FF4D00', 8)
+  }
 
-  gameStore.incrementScore(1)
-
-  // Spawn score popup every 100 points
-  if (gameStore.score > 0 && gameStore.score % 100 === 0) {
+  // Milestone popups every 100m.
+  if (state.score > 0 && state.score % 100 === 0) {
     scorePopups.value.push({
-      x: 100 + player.value.width / 2,
-      y: 350 - player.value.y - 80,
+      x: ENGINE.PLAYER_X + state.player.width / 2,
+      y: ENGINE.GROUND_Y - state.player.y - 80,
       value: 100,
-      life: 1
+      life: 1,
     })
   }
 
-  // Update score popups
-  scorePopups.value = scorePopups.value.filter(popup => {
-    popup.y -= 1
-    popup.life -= 0.02
-    return popup.life > 0
+  // Update render-only effects.
+  coinRotation.value += 0.1
+  scorePopups.value = scorePopups.value.filter((p) => {
+    p.y -= 1
+    p.life -= 0.02
+    return p.life > 0
+  })
+  particles.value = particles.value.filter((p) => {
+    p.x += p.vx
+    p.y += p.vy
+    p.vy += 0.15
+    p.life -= 0.03
+    return p.life > 0
   })
 
   draw()
@@ -239,60 +217,65 @@ function draw(): void {
   const canvas = canvasRef.value
   ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-  const groundY = 350
+  const groundY = ENGINE.GROUND_Y
 
-  // Draw Magma Ground
+  // --- Parallax background layers (far to near) ---
+  drawParallax(ctx, canvas, groundY)
+
+  // Ground.
   ctx.fillStyle = '#0F0F1A'
-  ctx.fillRect(0, groundY, canvas.width, 50)
-  
-  // Ground neon line
+  ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY)
   ctx.strokeStyle = '#FF4D00'
   ctx.lineWidth = 4
   ctx.beginPath()
   ctx.moveTo(0, groundY)
   ctx.lineTo(canvas.width, groundY)
   ctx.stroke()
-  
-  // Parallax Particles (Ash/Neon)
-  if (settingsStore.settings.showParticles) {
-    parallaxOffsets.value.forEach((offset, i) => {
-      ctx!.fillStyle = i % 2 === 0 ? `rgba(255, 77, 0, ${0.1 - (i * 0.02)})` : `rgba(0, 243, 255, ${0.1 - (i * 0.02)})`
-      for (let x = offset; x < canvas.width; x += 150 * (i + 1)) {
-        ctx!.beginPath()
-        ctx!.arc(x, groundY - 50 - (i * 40), 1 + i, 0, Math.PI * 2)
-        ctx!.fill()
-      }
-    })
-  }
 
-  // Draw player trail
+  // Player trail.
   playerTrail.value.forEach((trail, index) => {
-    const scale = 1 - (index * 0.15)
-    const offsetX = (player.value.width * (1 - scale)) / 2
+    const scale = 1 - index * 0.15
+    const offsetX = (state.player.width * (1 - scale)) / 2
     ctx!.globalAlpha = trail.alpha * 0.5
     ctx!.fillStyle = '#00F3FF'
     ctx!.shadowColor = '#00F3FF'
     ctx!.shadowBlur = 15
     ctx!.fillRect(
-      100 + offsetX,
-      groundY - trail.y - player.value.height * scale,
-      player.value.width * scale,
-      player.value.height * scale
+      ENGINE.PLAYER_X + offsetX,
+      groundY - trail.y - state.player.height * scale,
+      state.player.width * scale,
+      state.player.height * scale,
     )
     trail.alpha -= 0.05
   })
-  playerTrail.value = playerTrail.value.filter(t => t.alpha > 0)
+  playerTrail.value = playerTrail.value.filter((t) => t.alpha > 0)
 
-  // Draw player
+  // Player.
   ctx.globalAlpha = 1
   ctx.fillStyle = '#00F3FF'
   ctx.shadowColor = '#00F3FF'
   ctx.shadowBlur = 20
-  ctx.fillRect(100, groundY - player.value.y - player.value.height, player.value.width, player.value.height)
+  const px = ENGINE.PLAYER_X
+  const py = groundY - state.player.y - state.player.height
+  ctx.fillRect(px, py, state.player.width, state.player.height)
   ctx.shadowBlur = 0
 
-  // Draw obstacles (Volcano Magma)
-  obstacles.value.forEach(obs => {
+  // Shield aura.
+  if (state.shieldFrames > 0) {
+    ctx.globalAlpha = 0.4 + Math.sin(Date.now() / 120) * 0.2
+    ctx.strokeStyle = '#00F3FF'
+    ctx.lineWidth = 3
+    ctx.shadowColor = '#00F3FF'
+    ctx.shadowBlur = 20
+    ctx.beginPath()
+    ctx.arc(px + state.player.width / 2, py + state.player.height / 2, state.player.width, 0, Math.PI * 2)
+    ctx.stroke()
+    ctx.shadowBlur = 0
+    ctx.globalAlpha = 1
+  }
+
+  // Obstacles.
+  state.obstacles.forEach((obs) => {
     if (obs.warning) {
       const alpha = 0.4 + Math.sin(Date.now() / 100) * 0.3
       ctx!.globalAlpha = alpha
@@ -318,20 +301,8 @@ function draw(): void {
   })
   ctx.shadowBlur = 0
 
-  // Draw score popups
-  scorePopups.value.forEach(popup => {
-    ctx!.globalAlpha = popup.life
-    ctx!.fillStyle = '#00F3FF'
-    ctx!.shadowColor = '#00F3FF'
-    ctx!.shadowBlur = 10
-    ctx!.font = '900 24px "Space Mono"'
-    ctx!.textAlign = 'center'
-    ctx!.fillText(`+${popup.value}`, popup.x, popup.y)
-    ctx!.globalAlpha = 1
-  })
-  
-  // Draw coins (Neon Sulphur)
-  coins.value.forEach(coin => {
+  // Coins.
+  state.coins.forEach((coin) => {
     if (coin.collected) return
     const scale = 0.8 + Math.sin(coinRotation.value) * 0.2
     const coinY = groundY - coin.y
@@ -343,15 +314,92 @@ function draw(): void {
     ctx!.fill()
     ctx!.shadowBlur = 0
   })
+
+  // Power-ups.
+  state.powerUps.forEach((pu) => {
+    if (pu.collected) return
+    const puY = groundY - pu.y
+    const isShield = pu.type === 'shield'
+    ctx!.fillStyle = isShield ? '#00F3FF' : '#FF4DD8'
+    ctx!.shadowColor = isShield ? '#00F3FF' : '#FF4DD8'
+    ctx!.shadowBlur = 20
+    ctx!.globalAlpha = 0.7 + Math.sin(Date.now() / 150) * 0.3
+    ctx!.beginPath()
+    ctx!.arc(pu.x, puY, 16, 0, Math.PI * 2)
+    ctx!.fill()
+    ctx!.globalAlpha = 1
+    ctx!.shadowBlur = 0
+    ctx!.fillStyle = '#0F0F1A'
+    ctx!.font = '900 16px "Space Mono"'
+    ctx!.textAlign = 'center'
+    ctx!.textBaseline = 'middle'
+    ctx!.fillText(isShield ? 'S' : 'M', pu.x, puY)
+    ctx!.textBaseline = 'alphabetic'
+  })
+
+  // Particles.
+  particles.value.forEach((p) => {
+    ctx!.globalAlpha = Math.max(0, p.life)
+    ctx!.fillStyle = p.color
+    ctx!.shadowColor = p.color
+    ctx!.shadowBlur = 8
+    ctx!.beginPath()
+    ctx!.arc(p.x, p.y, 3 * p.life, 0, Math.PI * 2)
+    ctx!.fill()
+  })
+  ctx.globalAlpha = 1
+  ctx.shadowBlur = 0
+
+  // Score popups.
+  scorePopups.value.forEach((popup) => {
+    ctx!.globalAlpha = popup.life
+    ctx!.fillStyle = '#00F3FF'
+    ctx!.shadowColor = '#00F3FF'
+    ctx!.shadowBlur = 10
+    ctx!.font = '900 24px "Space Mono"'
+    ctx!.textAlign = 'center'
+    ctx!.fillText(`+${popup.value}`, popup.x, popup.y)
+    ctx!.globalAlpha = 1
+  })
+  ctx.shadowBlur = 0
 }
 
-// Theme toggle removed for arcade consistency
+function drawParallax(c: CanvasRenderingContext2D, canvas: HTMLCanvasElement, groundY: number): void {
+  // Layer 0: distant mountains.
+  const colors = ['rgba(40, 20, 60, 0.55)', 'rgba(80, 30, 70, 0.6)', 'rgba(120, 40, 50, 0.65)']
+  parallax.value.forEach((layer, i) => {
+    const baseH = 70 + i * 35
+    const peakW = 220 - i * 50
+    c.fillStyle = colors[i]
+    for (let x = layer.offset - peakW; x < canvas.width + peakW; x += peakW) {
+      c.beginPath()
+      c.moveTo(x, groundY)
+      c.lineTo(x + peakW / 2, groundY - baseH)
+      c.lineTo(x + peakW, groundY)
+      c.closePath()
+      c.fill()
+    }
+  })
 
-;(globalThis as any).handleJump = jump
+  // Drifting ash/neon particles tied to parallax for extra depth.
+  if (settingsStore.settings.showParticles) {
+    parallax.value.forEach((layer, i) => {
+      c.fillStyle = i % 2 === 0 ? `rgba(255, 77, 0, ${0.12 - i * 0.03})` : `rgba(0, 243, 255, ${0.12 - i * 0.03})`
+      for (let x = layer.offset; x < canvas.width; x += 150 * (i + 1)) {
+        c.beginPath()
+        c.arc(x, groundY - 90 - i * 50, 1 + i, 0, Math.PI * 2)
+        c.fill()
+      }
+    })
+  }
+}
+
+// Exposed for keyboard composable.
+;(globalThis as { handleJump?: () => void }).handleJump = jump
 </script>
 
 <template>
-  <div 
+  <div
     class="h-screen w-screen flex flex-col overflow-hidden font-sans transition-colors duration-500"
     :class="backgroundClass"
     role="application"
@@ -365,7 +413,7 @@ function draw(): void {
     <nav class="h-20 lg:h-24 border-b border-magma/20 px-7 lg:px-11 flex items-center justify-between relative z-10 bg-obsidian/80 backdrop-blur-xl">
       <div class="flex items-center space-x-3 text-white">
         <div class="bg-magma p-2 rounded-none rotate-3 shadow-[0_0_20px_#FF4D00]">
-          <Zap class="text-white" :size="20" lg:size="24" fill="currentColor" />
+          <Zap class="text-white" :size="20" fill="currentColor" />
         </div>
         <h1 class="arcade-title text-3xl lg:text-4xl">
           DRAGON_<span class="text-magma">SURGE</span>
@@ -379,36 +427,37 @@ function draw(): void {
                :class="i <= gameStore.lives ? 'bg-magma shadow-[0_0_10px_#FF4D00]' : 'bg-white/10'">
           </div>
         </div>
-        
+
         <div class="glass-panel px-4 lg:px-6 py-2 lg:py-2.5 flex items-center space-x-3 lg:space-x-4">
-          <Trophy :size="14" lg:size="16" class="text-neon-sulphur" />
+          <Trophy :size="14" class="text-neon-sulphur" />
           <span class="text-[10px] lg:text-xs font-arcade tracking-widest uppercase">BEST: {{ gameStore.highScore }}</span>
         </div>
 
         <div class="flex gap-1 lg:gap-2">
-          <button 
+          <button
             @click="showSettings = true"
             class="p-2 lg:p-3 rounded-none hover:bg-magma/20 transition-colors border border-transparent hover:border-magma"
             aria-label="Open settings"
           >
-            <Settings :size="16" lg:size="20" class="text-white" />
+            <Settings :size="16" class="text-white" />
           </button>
         </div>
       </div>
     </nav>
 
     <main class="flex-1 flex flex-col items-center justify-center p-4 lg:p-8 relative z-10">
-      <div class="relative glass-panel p-3 lg:p-4 border-2 border-magma/30 shadow-[0_0_100px_rgba(255,77,0,0.1)]">
+      <div class="relative glass-panel p-3 lg:p-4 border-2 border-magma/30 shadow-[0_0_100px_rgba(255,77,0,0.1)] w-full max-w-[832px]">
         <canvas
           ref="canvasRef"
-          width="800"
-          height="400"
-          class="bg-obsidian/60 border border-white/5 w-full max-w-[802px] h-auto shadow-inner"
+          :width="CANVAS_W"
+          :height="CANVAS_H"
+          class="bg-obsidian/60 border border-white/5 w-full h-auto shadow-inner touch-none select-none cursor-pointer"
           role="img"
-          aria-label="Dragon game canvas"
+          aria-label="Dragon game canvas. Tap or press space to jump."
+          @pointerdown.prevent="jump"
         ></canvas>
-        
-        <div v-if="gameStore.isIdle" 
+
+        <div v-if="gameStore.isIdle"
              class="absolute inset-0 flex flex-col items-center justify-center bg-obsidian/80 backdrop-blur-xl space-y-8">
           <div class="text-center space-y-4 animate-pulse-magma">
             <h2 class="arcade-title">
@@ -417,20 +466,26 @@ function draw(): void {
             <p class="text-[10px] lg:text-xs font-mono font-black uppercase text-magma tracking-[0.4em]">
               NEURAL_LINK: ESTABLISHED
             </p>
+            <p class="text-[10px] lg:text-xs font-mono font-black uppercase text-neon-sulphur tracking-[0.3em]">
+              BEST: {{ gameStore.highScore }}m
+            </p>
           </div>
-          <button 
+          <button
             @click="startGame"
             class="btn-arcade text-dragon-cyan border-dragon-cyan hover:bg-dragon-cyan/10"
             autofocus
           >
             [ INITIATE_RUN ]
           </button>
+          <p class="text-[8px] lg:text-[10px] font-mono uppercase text-bone/40 tracking-widest text-center">
+            TAP / CLICK / SPACE TO JUMP &middot; DOUBLE-JUMP IN AIR
+          </p>
         </div>
 
-        <div v-if="gameStore.isPaused" 
+        <div v-if="gameStore.isPaused"
              class="absolute inset-0 flex flex-col items-center justify-center bg-obsidian/90 backdrop-blur-xl space-y-6">
           <h2 class="arcade-title text-magma animate-glitch">SYSTEM_PAUSED</h2>
-          <button 
+          <button
             @click="gameStore.pauseGame()"
             class="btn-arcade text-bone border-bone hover:bg-white/10"
           >
@@ -438,7 +493,7 @@ function draw(): void {
           </button>
         </div>
 
-        <div v-if="gameStore.isGameOver" 
+        <div v-if="gameStore.isGameOver"
              class="absolute inset-0 flex flex-col items-center justify-center bg-obsidian/95 backdrop-blur-2xl space-y-8">
           <div class="text-center space-y-4">
             <h2 class="arcade-title text-magma animate-glitch">DATA_FRACTURED</h2>
@@ -446,7 +501,7 @@ function draw(): void {
               TELEMETRY_TERMINATED: {{ gameStore.score }}m
             </p>
           </div>
-          
+
           <div class="grid grid-cols-2 gap-4">
             <div class="glass-panel p-4 border border-dragon-cyan/30">
               <p class="text-[8px] uppercase tracking-widest text-dragon-cyan">PEAK</p>
@@ -458,7 +513,7 @@ function draw(): void {
             </div>
           </div>
 
-          <button 
+          <button
             @click="startGame"
             class="btn-arcade text-dragon-cyan border-dragon-cyan hover:bg-dragon-cyan/10 shadow-[0_0_20px_rgba(0,243,255,0.3)]"
           >
@@ -466,7 +521,7 @@ function draw(): void {
           </button>
         </div>
 
-        <div v-if="gameStore.isPlaying && settingsStore.settings.showHUD" 
+        <div v-if="gameStore.isPlaying && settingsStore.settings.showHUD"
              class="absolute top-4 lg:top-8 left-4 lg:left-8 p-4 bg-obsidian/80 backdrop-blur-xl border border-magma/30 flex flex-col gap-1">
           <div class="flex items-center gap-2">
             <span class="w-2 h-2 bg-magma animate-pulse"></span>
@@ -476,10 +531,20 @@ function draw(): void {
             {{ String(gameStore.score).padStart(6, '0') }}
           </span>
         </div>
+
+        <!-- Active power-up indicators -->
+        <div v-if="gameStore.isPlaying" class="absolute top-4 lg:top-8 right-4 lg:right-8 flex gap-2">
+          <div v-if="shieldOn" class="glass-panel p-2 border border-dragon-cyan/50 flex items-center gap-1 text-dragon-cyan animate-pulse" aria-label="Shield active">
+            <Shield :size="16" />
+          </div>
+          <div v-if="magnetOn" class="glass-panel p-2 border border-pink-400/50 flex items-center gap-1 text-pink-400 animate-pulse" aria-label="Coin magnet active">
+            <Magnet :size="16" />
+          </div>
+        </div>
       </div>
 
       <div v-if="gameStore.isPlaying" class="mt-8 lg:mt-12 md:hidden">
-        <button 
+        <button
           @touchstart.prevent="jump"
           @click="jump"
           class="w-20 h-20 rounded-full bg-white/10 border-4 border-white/20 flex items-center justify-center text-white active:bg-jurassic-glow transition-all pointer-events-auto"
@@ -493,7 +558,7 @@ function draw(): void {
     <footer class="h-16 lg:h-20 border-t border-white/5 px-6 lg:px-10 flex items-center justify-between text-[8px] lg:text-[10px] font-black uppercase tracking-[0.4em] lg:tracking-[0.5em] text-slate-700 italic">
       <div class="flex items-center space-x-4 lg:space-x-6">
         <span class="flex items-center gap-2">
-          <Activity :size="10" lg:size="12" /> Engine: Reactive-Vue
+          <Activity :size="10" /> Engine: Reactive-Vue
         </span>
         <span class="w-1 h-1 bg-slate-800 rounded-full hidden lg:block"></span>
         <span class="hidden lg:block">Core v2.0-Production</span>
