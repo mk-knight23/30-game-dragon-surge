@@ -250,8 +250,8 @@ function resetStats(): void {
           <div class="p-6 space-y-6">
             <div class="space-y-4">
               <div class="flex gap-4">
-                <div class="w-10 h-10 rounded-full bg-jurassic-glow/20 flex items-center justify-center flex-shrink-0">
-                  <span class="text-jurassic-glow font-game text-xs">GO</span>
+                <div class="w-10 h-10 rounded-full bg-dragon-cyan/20 flex items-center justify-center flex-shrink-0">
+                  <span class="text-dragon-cyan font-game text-xs">GO</span>
                 </div>
                 <div>
                   <h4 class="text-white font-bold mb-1">Start Game</h4>
@@ -260,8 +260,8 @@ function resetStats(): void {
               </div>
 
               <div class="flex gap-4">
-                <div class="w-10 h-10 rounded-full bg-jurassic-leaf/20 flex items-center justify-center flex-shrink-0">
-                  <span class="text-jurassic-leaf font-game text-xs">↑</span>
+                <div class="w-10 h-10 rounded-full bg-neon-sulphur/20 flex items-center justify-center flex-shrink-0">
+                  <span class="text-neon-sulphur font-game text-xs">↑</span>
                 </div>
                 <div>
                   <h4 class="text-white font-bold mb-1">Jump</h4>
@@ -270,8 +270,8 @@ function resetStats(): void {
               </div>
 
               <div class="flex gap-4">
-                <div class="w-10 h-10 rounded-full bg-jurassic-volcano/20 flex items-center justify-center flex-shrink-0">
-                  <span class="text-jurassic-volcano font-game text-xs">X</span>
+                <div class="w-10 h-10 rounded-full bg-magma/20 flex items-center justify-center flex-shrink-0">
+                  <span class="text-magma font-game text-xs">X</span>
                 </div>
                 <div>
                   <h4 class="text-white font-bold mb-1">Avoid Obstacles</h4>

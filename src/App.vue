@@ -14,6 +14,7 @@ import {
   Magnet,
 } from 'lucide-vue-next'
 import SettingsPanel from '@/components/ui/SettingsPanel.vue'
+import BackgroundFX from '@/components/ui/BackgroundFX.vue'
 import {
   createInitialState,
   jump as engineJump,
@@ -60,9 +61,25 @@ const showSettings = ref(false)
 const showHelp = ref(false)
 
 const backgroundClass = computed(() => {
-  if (gameStore.isGameOver) return 'bg-red-950/20'
-  if (gameStore.isPaused) return 'bg-amber-950/20'
-  return 'bg-obsidian'
+  if (gameStore.isGameOver) return 'bg-ember/10'
+  if (gameStore.isPaused) return 'bg-neon-sulphur/5'
+  return 'bg-transparent'
+})
+
+// Background media variant. Live gameplay (playing/paused) uses the STATIC image
+// so the video decoder never competes with the running canvas; idle menu and the
+// game-over arena use the cinematic looping video.
+const bgVariant = computed<'menu' | 'game' | 'result'>(() => {
+  if (gameStore.isGameOver) return 'result'
+  if (gameStore.isPlaying || gameStore.isPaused) return 'game'
+  return 'menu'
+})
+
+// Per-screen background art: menu tunnel, gameplay world, boss arena.
+const bgImage = computed(() => {
+  if (gameStore.isGameOver) return '/media/dragon-result.jpg'
+  if (gameStore.isPlaying || gameStore.isPaused) return '/media/dragon-bg.jpg'
+  return '/media/dragon-menu.jpg'
 })
 
 function handleResize(): void {
@@ -400,11 +417,15 @@ function drawParallax(c: CanvasRenderingContext2D, canvas: HTMLCanvasElement, gr
 
 <template>
   <div
-    class="h-screen w-screen flex flex-col overflow-hidden font-sans transition-colors duration-500"
+    class="relative h-screen w-screen flex flex-col overflow-hidden font-sans transition-colors duration-500"
     :class="backgroundClass"
     role="application"
     aria-label="Dragon Surge Game"
   >
+    <!-- Layered cinematic background (behind everything). Video on menu/result,
+         static image during live gameplay to protect canvas frame rate. -->
+    <BackgroundFX :variant="bgVariant" :image="bgImage" />
+
     <!-- CRT Scanline Overlay -->
     <div class="pointer-events-none fixed inset-0 z-50 overflow-hidden opacity-10">
       <div class="h-full w-full animate-scanline bg-[linear-gradient(to_bottom,transparent_50%,black_50%)] bg-[length:100%_4px]"></div>
@@ -458,67 +479,73 @@ function drawParallax(c: CanvasRenderingContext2D, canvas: HTMLCanvasElement, gr
         ></canvas>
 
         <div v-if="gameStore.isIdle"
-             class="absolute inset-0 flex flex-col items-center justify-center bg-obsidian/80 backdrop-blur-xl space-y-8">
-          <div class="text-center space-y-4 animate-pulse-magma">
-            <h2 class="arcade-title">
-              READY_TO<br/>SURGE?
-            </h2>
-            <p class="text-[10px] lg:text-xs font-mono font-black uppercase text-magma tracking-[0.4em]">
-              NEURAL_LINK: ESTABLISHED
-            </p>
-            <p class="text-[10px] lg:text-xs font-mono font-black uppercase text-neon-sulphur tracking-[0.3em]">
-              BEST: {{ gameStore.highScore }}m
+             class="absolute inset-0 flex flex-col items-center justify-center bg-obsidian/55 backdrop-blur-md space-y-8 p-6">
+          <div class="neon-panel px-8 py-8 lg:px-12 lg:py-10 flex flex-col items-center space-y-6 max-w-[90%]">
+            <div class="text-center space-y-4 animate-pulse-magma">
+              <h2 class="arcade-title">
+                READY_TO<br/>SURGE?
+              </h2>
+              <p class="text-[10px] lg:text-xs font-mono font-medium uppercase text-magma tracking-[0.4em] text-glow-magma">
+                NEURAL_LINK: ESTABLISHED
+              </p>
+              <p class="text-[10px] lg:text-xs font-mono font-medium uppercase text-dragon-cyan tracking-[0.3em] text-glow-cyan">
+                BEST: {{ gameStore.highScore }}m
+              </p>
+            </div>
+            <button
+              @click="startGame"
+              class="btn-arcade text-dragon-cyan border-dragon-cyan hover:bg-dragon-cyan/10"
+              autofocus
+            >
+              [ INITIATE_RUN ]
+            </button>
+            <p class="text-[8px] lg:text-[10px] font-mono uppercase text-bone/50 tracking-widest text-center">
+              TAP / CLICK / SPACE TO JUMP &middot; DOUBLE-JUMP IN AIR
             </p>
           </div>
-          <button
-            @click="startGame"
-            class="btn-arcade text-dragon-cyan border-dragon-cyan hover:bg-dragon-cyan/10"
-            autofocus
-          >
-            [ INITIATE_RUN ]
-          </button>
-          <p class="text-[8px] lg:text-[10px] font-mono uppercase text-bone/40 tracking-widest text-center">
-            TAP / CLICK / SPACE TO JUMP &middot; DOUBLE-JUMP IN AIR
-          </p>
         </div>
 
         <div v-if="gameStore.isPaused"
-             class="absolute inset-0 flex flex-col items-center justify-center bg-obsidian/90 backdrop-blur-xl space-y-6">
-          <h2 class="arcade-title text-magma animate-glitch">SYSTEM_PAUSED</h2>
-          <button
-            @click="gameStore.pauseGame()"
-            class="btn-arcade text-bone border-bone hover:bg-white/10"
-          >
-            RESUME_THREAD
-          </button>
+             class="absolute inset-0 flex flex-col items-center justify-center bg-obsidian/80 backdrop-blur-md space-y-6 p-6">
+          <div class="neon-panel px-8 py-8 lg:px-12 lg:py-10 flex flex-col items-center space-y-6">
+            <h2 class="arcade-title text-magma animate-glitch">SYSTEM_PAUSED</h2>
+            <button
+              @click="gameStore.pauseGame()"
+              class="btn-arcade text-bone border-bone hover:bg-white/10"
+            >
+              RESUME_THREAD
+            </button>
+          </div>
         </div>
 
         <div v-if="gameStore.isGameOver"
-             class="absolute inset-0 flex flex-col items-center justify-center bg-obsidian/95 backdrop-blur-2xl space-y-8">
-          <div class="text-center space-y-4">
-            <h2 class="arcade-title text-magma animate-glitch">DATA_FRACTURED</h2>
-            <p class="text-xs lg:text-sm font-mono font-black uppercase text-bone tracking-widest">
-              TELEMETRY_TERMINATED: {{ gameStore.score }}m
-            </p>
-          </div>
-
-          <div class="grid grid-cols-2 gap-4">
-            <div class="glass-panel p-4 border border-dragon-cyan/30">
-              <p class="text-[8px] uppercase tracking-widest text-dragon-cyan">PEAK</p>
-              <p class="text-2xl font-game text-bone">{{ gameStore.highScore }}</p>
+             class="absolute inset-0 flex flex-col items-center justify-center bg-obsidian/70 backdrop-blur-md space-y-8 p-6">
+          <div class="neon-panel px-8 py-8 lg:px-12 lg:py-10 flex flex-col items-center space-y-7 max-w-[90%]">
+            <div class="text-center space-y-4">
+              <h2 class="arcade-title text-magma animate-glitch">DATA_FRACTURED</h2>
+              <p class="text-xs lg:text-sm font-mono font-medium uppercase text-bone tracking-widest">
+                TELEMETRY_TERMINATED: {{ gameStore.score }}m
+              </p>
             </div>
-            <div class="glass-panel p-4 border border-magma/30">
-              <p class="text-[8px] uppercase tracking-widest text-magma">LVL</p>
-              <p class="text-2xl font-game text-bone">{{ gameStore.level }}</p>
-            </div>
-          </div>
 
-          <button
-            @click="startGame"
-            class="btn-arcade text-dragon-cyan border-dragon-cyan hover:bg-dragon-cyan/10 shadow-[0_0_20px_rgba(0,243,255,0.3)]"
-          >
-            REBOOT_CORE
-          </button>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="glass-panel p-4 border border-dragon-cyan/40 text-center">
+                <p class="text-[8px] uppercase tracking-widest text-dragon-cyan">PEAK</p>
+                <p class="text-2xl font-game text-bone text-glow-cyan">{{ gameStore.highScore }}</p>
+              </div>
+              <div class="glass-panel p-4 border border-magma/40 text-center">
+                <p class="text-[8px] uppercase tracking-widest text-magma">LVL</p>
+                <p class="text-2xl font-game text-bone text-glow-magma">{{ gameStore.level }}</p>
+              </div>
+            </div>
+
+            <button
+              @click="startGame"
+              class="btn-arcade text-dragon-cyan border-dragon-cyan hover:bg-dragon-cyan/10 shadow-[0_0_20px_rgba(34,211,238,0.35)]"
+            >
+              REBOOT_CORE
+            </button>
+          </div>
         </div>
 
         <div v-if="gameStore.isPlaying && settingsStore.settings.showHUD"
@@ -547,7 +574,7 @@ function drawParallax(c: CanvasRenderingContext2D, canvas: HTMLCanvasElement, gr
         <button
           @touchstart.prevent="jump"
           @click="jump"
-          class="w-20 h-20 rounded-full bg-white/10 border-4 border-white/20 flex items-center justify-center text-white active:bg-jurassic-glow transition-all pointer-events-auto"
+          class="w-20 h-20 rounded-full bg-magma/15 border-4 border-magma/40 flex items-center justify-center text-bone shadow-[0_0_24px_rgba(249,115,22,0.4)] active:bg-magma/40 active:scale-95 transition-all pointer-events-auto"
           aria-label="Jump"
         >
           <ChevronUp :size="32" />
