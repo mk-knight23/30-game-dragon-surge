@@ -102,8 +102,7 @@ included:
 npm run build        # outputs static assets to dist/
 ```
 
-Deploy `dist/` to Vercel, Netlify, GitHub Pages, or any static file host. On
-Vercel, the included config serves the SPA directly.
+Deploy `dist/` to Vercel. The included config serves the SPA directly.
 
 ## License
 
